@@ -1,0 +1,5 @@
+pandas
+workalendar
+xlwings
+chardet
+openpyxl
