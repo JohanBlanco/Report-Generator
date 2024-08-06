@@ -3,3 +3,6 @@ __pycache__/
 
 # Ignore .xlsx files
 *.xlsx
+
+# Ignore .xlsx files
+*.csv
