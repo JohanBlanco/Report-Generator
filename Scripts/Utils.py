@@ -151,11 +151,13 @@ def refresh_pivot_tables(sheet=None):
                 pt.PivotCache().Refresh()
 
 def create_excel_with_content(source_file_path: str, destination_path: str, content: pd.DataFrame, new_file_name: str, lattest_report_dir: str, tasks_to_be_painted) -> str:
-    # Combine the destination path and new file name to form the full path
-    lattest_report_path = os.path.join(lattest_report_dir, f"{new_file_name}.xlsx")
-    timestamp = datetime.now().strftime('%Y-%m-%d_%H-%M-%S')
-    new_file_path = os.path.join(destination_path, f"{new_file_name}_{timestamp}.xlsx")
-    
+   # Generate the timestamp without invalid characters
+    timestamp = datetime.now().strftime("%B %d, %Y %H-%M-%S")
+    lattest_report_name = f"{new_file_name}_{timestamp}.xlsx"
+    lattest_report_path = os.path.join(lattest_report_dir, lattest_report_name)
+
+    new_file_path = os.path.join(destination_path, lattest_report_name)
+
     # Copy the source file to the new destination
     shutil.copy2(source_file_path, new_file_path)  # Using copy2 to preserve metadata
 

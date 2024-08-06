@@ -62,7 +62,8 @@ class columns(Enum):
     EffectiveReworkClientVerificationDays = "Effective Rework Client Verification Days"
     VerificationCompleteDate = "Verification Complete Date"
     ReadyToMigrateDate = "Ready To Migrate Date"
-    CompleteBucketTime = "Complete Bucket Time"
+    ConfigurationCompleteBucketTime = "Configuration Complete Bucket Time"
+    BlockedBucketTime = "Blocked Bucket Time"
     PeerReviewReworkBucketTime = "Peer Review Rework Bucket Time"
     ReadyForDemoBucketTime = "Ready for Demo Bucket Time"
     DemoBucketTime = "Demo Bucket Time"
@@ -123,83 +124,87 @@ class CaseInsensitiveDict(dict):
         super().update(*args, **kwargs)
         self._convert_keys()
 
+class Category(Enum):
+    Network = "Network"
+    Length = "Lenght"
+    Value = "Value"
+
 class AgeingParam:
     def __init__(
         self,
         key: str,
+        category: str,
         start_dates: Callable[[any], List[str]],
-        end_dates: Callable[[any], List[str]],
-        insert_length: bool,
-        value: Callable[[any], str],
-        first_dates_only:bool = False
+        end_dates: Callable[[any], List[str]] = None,
+        date_pos: bool = None,
     ):
         self.key = key
         self.start_dates = start_dates
+        self.category = category  # Initialize required attribute
         self.end_dates = end_dates
-        self.insert_length = insert_length
-        self.first_dates_only = first_dates_only
-        self.value = value
+        self.date_pos = date_pos
 
 ageing_params = [
     # Configuration
     # Network
-    AgeingParam(key=columns.ConfigurationDays.value, start_dates=desc_keys.ConfigStartDate.value, end_dates=desc_keys.ConfigEndDate.value, insert_length=False, value=None),
+    AgeingParam(key=columns.ConfigurationDays.value, start_dates=desc_keys.ConfigStartDate.value, end_dates=desc_keys.ConfigEndDate.value, category=Category.Network.value),
     # Network
-    AgeingParam(key=columns.BlockedConfigurationDays.value, start_dates=desc_keys.AllConfigBlockedStartDate.value, end_dates=desc_keys.AllConfigBlockedEndDate.value, insert_length=False, value=None),
+    AgeingParam(key=columns.BlockedConfigurationDays.value, start_dates=desc_keys.AllConfigBlockedStartDate.value, end_dates=desc_keys.AllConfigBlockedEndDate.value, category=Category.Network.value),
 
     # Peer Review
-    # Number
-    AgeingParam(key=columns.NumberOfPeerReviews.value, start_dates=desc_keys.AllPeerReviewStartDate.value, end_dates=None, insert_length=True, value=columns.NumberOfPeerReviews.value),
+    # Length
+    AgeingParam(key=columns.NumberOfPeerReviews.value, start_dates=desc_keys.AllPeerReviewStartDate.value, category=Category.Length.value),
     # Network
-    AgeingParam(key=columns.PeerReviewDays.value, start_dates=desc_keys.AllPeerReviewStartDate.value, end_dates=desc_keys.AllPeerReviewEndDate.value, insert_length=False, value=None),
+    AgeingParam(key=columns.PeerReviewDays.value, start_dates=desc_keys.AllPeerReviewStartDate.value, end_dates=desc_keys.AllPeerReviewEndDate.value, category=Category.Network.value),
     # Network
-    AgeingParam(key=columns.PeerReviewReworkDays.value, start_dates=desc_keys.AllPeerReviewReworkRequiredStartDate.value, end_dates=desc_keys.AllPeerReviewReworkRequiredEndDate.value, insert_length=False, value=None),
+    AgeingParam(key=columns.PeerReviewReworkDays.value, start_dates=desc_keys.AllPeerReviewReworkRequiredStartDate.value, end_dates=desc_keys.AllPeerReviewReworkRequiredEndDate.value, category=Category.Network.value),
     # Network
-    AgeingParam(key=columns.BlockedPeerReviewReworkDays.value, start_dates=desc_keys.AllPRReworkBlockedStartDate.value, end_dates=desc_keys.AllPRReworkBlockedEndDate.value, insert_length=False, value=None),
+    AgeingParam(key=columns.BlockedPeerReviewReworkDays.value, start_dates=desc_keys.AllPRReworkBlockedStartDate.value, end_dates=desc_keys.AllPRReworkBlockedEndDate.value, category=Category.Network.value),
 
     # Demo
-    # Number
-    AgeingParam(key=columns.NumberOfReadyForDemo.value, start_dates=desc_keys.AllReadyForDemoDate.value, end_dates=None, insert_length=True, value=columns.NumberOfReadyForDemo.value),
-    # Number
-    AgeingParam(key=columns.NumberOfDemos.value, start_dates=desc_keys.AllDemoDate.value, end_dates=None, insert_length=True, value=columns.NumberOfDemos.value),
+    # Length
+    AgeingParam(key=columns.NumberOfReadyForDemo.value, start_dates=desc_keys.AllReadyForDemoDate.value, category=Category.Length.value),
+    # Length
+    AgeingParam(key=columns.NumberOfDemos.value, start_dates=desc_keys.AllDemoDate.value, category=Category.Length.value),
     # Network
-    AgeingParam(key=columns.DemoReworkDays.value, start_dates=desc_keys.AllDemoReworkRequiredStartDate.value, end_dates=desc_keys.AllDemoReworkRequiredEndDate.value, insert_length=False, value=None),
+    AgeingParam(key=columns.DemoReworkDays.value, start_dates=desc_keys.AllDemoReworkRequiredStartDate.value, end_dates=desc_keys.AllDemoReworkRequiredEndDate.value, category=Category.Network.value),
     # Network
-    AgeingParam(key=columns.BlockedDemoReworkDays.value, start_dates=desc_keys.AllDemoBlockedStartDate.value, end_dates=desc_keys.AllDemoBlockedEndDate.value, insert_length=False, value=None),
+    AgeingParam(key=columns.BlockedDemoReworkDays.value, start_dates=desc_keys.AllDemoBlockedStartDate.value, end_dates=desc_keys.AllDemoBlockedEndDate.value, category=Category.Network.value),
 
     # Client Verification
-    # Number
-    AgeingParam(key=columns.NumberOfReadyForClientVerification.value, start_dates=desc_keys.AllReadyForClientVerificationDate.value, end_dates=None, insert_length=True, value=columns.NumberOfReadyForClientVerification.value),
-    # Number
-    AgeingParam(key=columns.NumberOfClientVerification.value, start_dates=desc_keys.AllClientVerificationStartDate.value, end_dates=None, insert_length=True, value=columns.NumberOfClientVerification.value),
+    # Length
+    AgeingParam(key=columns.NumberOfReadyForClientVerification.value, start_dates=desc_keys.AllReadyForClientVerificationDate.value, category=Category.Length.value),
+    # Length
+    AgeingParam(key=columns.NumberOfClientVerification.value, start_dates=desc_keys.AllClientVerificationStartDate.value, category=Category.Length.value),
     # Network
-    AgeingParam(key=columns.ClientVerificationDays.value, start_dates=desc_keys.AllClientVerificationStartDate.value, end_dates=desc_keys.AllClientVerificationEndDate.value, insert_length=False, value=None),
+    AgeingParam(key=columns.ClientVerificationDays.value, start_dates=desc_keys.AllClientVerificationStartDate.value, end_dates=desc_keys.AllClientVerificationEndDate.value, category=Category.Network.value),
     # Network
-    AgeingParam(key=columns.ReworkClientVerificationDays.value, start_dates=desc_keys.AllClientReworkRequiredStartDate.value, end_dates=desc_keys.AllClientReworkRequiredEndDate.value, insert_length=False, value=None),
+    AgeingParam(key=columns.ReworkClientVerificationDays.value, start_dates=desc_keys.AllClientReworkRequiredStartDate.value, end_dates=desc_keys.AllClientReworkRequiredEndDate.value, category=Category.Network.value),
     # Network
-    AgeingParam(key=columns.BlockedReworkClientVerificationDays.value, start_dates=desc_keys.AllClientBlockedStartDate.value, end_dates=desc_keys.AllClientBlockedEndDate.value, insert_length=False, value=None),
+    AgeingParam(key=columns.BlockedReworkClientVerificationDays.value, start_dates=desc_keys.AllClientBlockedStartDate.value, end_dates=desc_keys.AllClientBlockedEndDate.value, category=Category.Network.value),
 
     # Insert the first date as a value
     # Value
-    AgeingParam(key=columns.VerificationCompleteDate.value, start_dates=None, end_dates=None, insert_length=False, value=desc_keys.VerificationCompleteDate.value),
+    AgeingParam(key=columns.VerificationCompleteDate.value, start_dates=desc_keys.VerificationCompleteDate.value, category=Category.Value.value),
     # Value
-    AgeingParam(key=columns.ReadyToMigrateDate.value, start_dates=None, end_dates=None, insert_length=False, value=desc_keys.ReadyToMigrateDate.value),
+    AgeingParam(key=columns.ReadyToMigrateDate.value, start_dates=desc_keys.ReadyToMigrateDate.value, category=Category.Value.value),
 
     # Bucket Time
     # Network
-    AgeingParam(key=columns.CompleteBucketTime.value, start_dates=desc_keys.AllPeerReviewStartDate.value, end_dates=desc_keys.ConfigEndDate.value, insert_length=False, value=None, first_dates_only=True),
+    AgeingParam(key=columns.ConfigurationCompleteBucketTime.value, start_dates=desc_keys.AllPeerReviewStartDate.value, end_dates=desc_keys.ConfigEndDate.value, date_pos=0, category=Category.Network.value),
     # Network
-    AgeingParam(key=columns.PeerReviewReworkBucketTime.value, start_dates=desc_keys.AllPeerReviewReworkRequiredStartDate.value, end_dates=desc_keys.AllPeerReviewEndDate.value, insert_length=False, value=None, first_dates_only=True),
+    AgeingParam(key=columns.BlockedBucketTime.value, start_dates=desc_keys.AllConfigBlockedStartDate.value, end_dates=desc_keys.AllConfigBlockedEndDate.value, date_pos=-1, category=Category.Network.value),
     # Network
-    AgeingParam(key=columns.ReadyForDemoBucketTime.value, start_dates=desc_keys.AllDemoDate.value, end_dates=desc_keys.AllReadyForDemoDate.value, insert_length=False, value=None, first_dates_only=True),
+    AgeingParam(key=columns.PeerReviewReworkBucketTime.value, start_dates=desc_keys.AllPeerReviewReworkRequiredStartDate.value, end_dates=desc_keys.AllPeerReviewEndDate.value, date_pos=0, category=Category.Network.value),
     # Network
-    AgeingParam(key=columns.DemoBucketTime.value, start_dates=desc_keys.AllReadyForClientVerificationDate.value, end_dates=desc_keys.AllDemoDate.value, insert_length=False, value=None, first_dates_only=True),
+    AgeingParam(key=columns.ReadyForDemoBucketTime.value, start_dates=desc_keys.AllDemoDate.value, end_dates=desc_keys.AllReadyForDemoDate.value, date_pos=0, category=Category.Network.value),
     # Network
-    AgeingParam(key=columns.ReadyForClientVerificationBucketTime.value, start_dates=desc_keys.AllClientVerificationStartDate.value, end_dates=desc_keys.AllReadyForClientVerificationDate.value, insert_length=False, value=None, first_dates_only=True),
+    AgeingParam(key=columns.DemoBucketTime.value, start_dates=desc_keys.AllReadyForClientVerificationDate.value, end_dates=desc_keys.AllDemoDate.value, date_pos=0, category=Category.Network.value),
     # Network
-    AgeingParam(key=columns.VerificationCompleteBucketTime.value, start_dates=desc_keys.ReadyToMigrateDate.value, end_dates=desc_keys.VerificationCompleteDate.value, insert_length=False, value=None, first_dates_only=True)
+    AgeingParam(key=columns.ReadyForClientVerificationBucketTime.value, start_dates=desc_keys.AllClientVerificationStartDate.value, end_dates=desc_keys.AllReadyForClientVerificationDate.value, date_pos=0, category=Category.Network.value),
+    # Network
+    AgeingParam(key=columns.VerificationCompleteBucketTime.value, start_dates=desc_keys.ReadyToMigrateDate.value, end_dates=desc_keys.VerificationCompleteDate.value, date_pos=0, category=Category.Network.value)
 ]
-
 
 def is_leap_year(year: int) -> bool:
     """Determine if a given year is a leap year."""
@@ -323,10 +328,9 @@ def assign_sites(template,sites_dict):
 
     return template
 
-def first_date(dates):
+def one_date(dates, pos):
     """Returns the first element of the array if it is not empty, otherwise returns None."""
-    return [dates[0]] if dates else []
-
+    return [dates[pos]] if dates else []
 
 def get_us_holidays_current_year_for_networkdays(cal = UnitedStates()) -> str:
     """Get the US holidays for the current year formatted for NETWORKDAYS.INTL in Excel."""
@@ -345,29 +349,28 @@ def get_us_holidays_current_year_for_networkdays(cal = UnitedStates()) -> str:
 
 holidays_range = get_us_holidays_current_year_for_networkdays()
 def insert_network_days_formula(task_id, param: AgeingParam, candidate, template):
-    start_dates = candidate[param.start_dates]
-    end_dates = candidate[param.end_dates]
-    
-    # If using only the first date in the ranges
-    if param.first_dates_only:
-        start_dates = first_date(candidate[param.start_dates])
-        end_dates = first_date(candidate[param.end_dates])
-
     formula = ''
     now = datetime.now()  # Current date
     weekends = 1
+    start_dates = candidate[param.start_dates]
+    end_dates:list = candidate[param.end_dates]
+    
 
+    while len(end_dates) < len(start_dates):
+        current_date = now.strftime('%m/%d/%y')
+        end_dates.append(current_date)
 
+    # If using only the first date in the ranges
+    date_pos = param.date_pos
+    if date_pos is not None:
+        start_dates = one_date(candidate[param.start_dates], date_pos)
+        end_dates = one_date(candidate[param.end_dates], date_pos)
+        
+            
 
-    for index, start_date in enumerate(start_dates):
+    for start_date, end_date in zip(start_dates, end_dates):
         # Directly use start_date and end_date if they are already in mm/dd/yy format
-        excel_start_date = start_date  # Assumes start_date is already in mm/dd/yy
-        if index < len(end_dates):
-            excel_end_date = end_dates[index]  # Assumes end_date is already in mm/dd/yy
-        else:
-            excel_end_date = now.strftime('%m/%d/%y')
-
-        formula += f'NETWORKDAYS.INTL("{excel_start_date}", "{excel_end_date}", {weekends}, {holidays_range})+'
+        formula += f'NETWORKDAYS.INTL("{start_date}", "{end_date}", {weekends}, {holidays_range})+'
 
     formula = '=0' if len(formula) == 0 else f"=ABS({formula[:-1]})"  # Remove the trailing '+'
 
@@ -381,20 +384,19 @@ def insert_start_dates_length(task_id:str, param:AgeingParam, candidate, templat
     template.loc[template['Task ID'] == task_id, param.key] = lenght
 
 def insert_first_date_value(task_id:str, param:AgeingParam, candidate, template):
-    value = candidate[param.value]
+    value = candidate[param.start_dates]
     template[param.key] = template[param.key].astype(str)
     template.loc[template['Task ID'] == task_id, param.key] = value[0] if len(value) != 0 else ""
 
 def insert_ageing_values(ageingCandidates, template:pd.DataFrame):
     for task_id, candidate in ageingCandidates.items():
         for param in ageing_params:
-            if param.insert_length:
+            category = param.category
+            if category == Category.Length.value:
                 insert_start_dates_length(task_id, param, candidate, template)
-            elif param.value is not None:
-                # Insert the given value into the cell
+            elif category == Category.Value.value:
                 insert_first_date_value(task_id, param, candidate, template)
-            else:
-                # Create and insert the formula for network days into the cell
+            elif category == Category.Network.value:
                 insert_network_days_formula(task_id, param, candidate, template)
 
 def insert_label_values(template:pd.DataFrame):
