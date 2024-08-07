@@ -169,8 +169,8 @@ def delete_all_files_in_folder(folder_path):
     # Iterate over all files in the directory
     for filename in os.listdir(folder_path):
         file_path = os.path.join(folder_path, filename)
-        # Check if it's a file and then delete it
-        if os.path.isfile(file_path):
+        # Check if it's a file and not .gitkeep, then delete it
+        if os.path.isfile(file_path) and filename != '.gitkeep':
             os.remove(file_path)
             print(f"Deleted file: {file_path}")
 

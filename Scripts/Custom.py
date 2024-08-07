@@ -435,16 +435,16 @@ def clean_not_candidates(df, task_ids):
     return df
 
 def create_excel_with_content(source_file_path: str, destination_path: str, content: pd.DataFrame, new_file_name: str, lattest_report_dir: str, tasks_to_be_painted) -> str:
-   # Generate the timestamp without invalid characters
+    # Generate the timestamp without invalid characters
     timestamp = datetime.now().strftime("%B %d, %Y %H-%M-%S")
     lattest_report_name = f"{new_file_name}_{timestamp}.xlsx"
     lattest_report_path = os.path.join(lattest_report_dir, lattest_report_name)
-
+    
     new_file_path = os.path.join(destination_path, lattest_report_name)
-
+    
     # Copy the source file to the new destination
     shutil.copy2(source_file_path, new_file_path)  # Using copy2 to preserve metadata
-
+    
     # Open the workbook with xlwings (invisible)
     app = xw.App(visible=False)
     try:
@@ -476,6 +476,16 @@ def create_excel_with_content(source_file_path: str, destination_path: str, cont
             raise ValueError(f"The sheet 'Tasks' does not contain a table named '{table_name}'.")
 
         table = tables[0]
+
+        # Extract formulas from the first row of the table
+        table_range = table.data_body_range
+        first_row_formulas = []
+        for cell in table_range:
+            if '=' in cell.formula:
+                row_position = cell.row
+                col_position = cell.column
+                formula = cell.formula
+                first_row_formulas.append((row_position, col_position, formula))
         
         # Find the first empty row in the table
         last_row = sheet.range(f"A{sheet.cells.last_cell.row}").end('up').row
@@ -493,18 +503,6 @@ def create_excel_with_content(source_file_path: str, destination_path: str, cont
         # Resize the table to include the new data
         table.source_range = table_range
 
-        # Get the range of the table
-        table_range = table.data_body_range
-
-        # Extract the values from the table range
-        table_values = table_range.value
-
-        # Replace cells with the string 'nan' with an empty string
-        for row_idx, row in enumerate(table_values):
-            for col_idx, value in enumerate(row):
-                if isinstance(value, str) and value.lower() == 'nan':
-                    table_range[row_idx, col_idx].value = ''
-
         # Find the indexes of the rows to be painted
         task_id_col_index = content.columns.get_loc('Task ID')
         task_ids = content['Task ID'].values
@@ -520,7 +518,11 @@ def create_excel_with_content(source_file_path: str, destination_path: str, cont
         # Delete the first empty row
         if first_empty_row <= sheet.cells.last_cell.row:
             sheet.range(f"{first_empty_row}:{first_empty_row}").api.Delete()
-        
+            
+        for row, col, value in first_row_formulas:
+            # Assuming `sheet` is your sheet object, and `row` and `col` are the row and column positions
+            sheet.range((row, col)).value = value
+
         refresh_pivot_tables()
         
         # Save and close the workbook
@@ -530,11 +532,11 @@ def create_excel_with_content(source_file_path: str, destination_path: str, cont
     finally:
         wb.close()
         app.quit()
-
+    
     # Copy the file to the latest report directory
     delete_all_files_in_folder(lattest_report_dir)
     shutil.copy2(new_file_path, lattest_report_path)  # Using copy2 to preserve metadata
-
+    
     return lattest_report_path
 
 def refresh_pivot_tables():
