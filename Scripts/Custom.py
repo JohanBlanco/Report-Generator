@@ -41,12 +41,12 @@ expected_length = len(desc_keys_values)
 
 class columns(Enum):
     Site = "Site"
-    ConfigurationDays = "Configuration Days"
-    BlockedConfigurationDays = "Blocked Configuration Days"
+    ConfigurationInProgress = "03.Configuration In Progress"
+    Blocked = "04.Blocked"
     EffectiveConfigurationDays = "Effective Configuration Days"
     NumberOfPeerReviews = "Number of Peer Reviews"
-    PeerReviewDays = "Peer Review Days"
-    PeerReviewReworkDays = "Peer Review Rework Days"
+    PeerReviewInProgress = "06.Peer Review In Progress"
+    PeerReviewReworkReq = "07.Peer Review - Rework Req."
     BlockedPeerReviewReworkDays = "Blocked Peer Review Rework Days"
     EffectivePeerReviewReworkDays = "Effective Peer Review Rework Days"
     NumberOfReadyForDemo = "Number of Ready for Demo"
@@ -56,19 +56,19 @@ class columns(Enum):
     EffectiveDemoReworkDays = "Effective Demo Rework Days"
     NumberOfReadyForClientVerification = "Number of Ready for Client Verification"
     NumberOfClientVerification = "Number of Client Verification"
-    ClientVerificationDays = "Client Verification Days"
-    ReworkClientVerificationDays = "Rework Client Verification Days"
+    VerificationInProgress = "13.Verification In Progress"
+    ClientReworkInProgress = "11.Client Rework In Progress"
     BlockedReworkClientVerificationDays = "Blocked Rework Client Verification Days"
     EffectiveReworkClientVerificationDays = "Effective Rework Client Verification Days"
     VerificationCompleteDate = "Verification Complete Date"
     ReadyToMigrateDate = "Ready To Migrate Date"
-    ConfigurationCompleteBucketTime = "Configuration Complete Bucket Time"
-    BlockedBucketTime = "Blocked Bucket Time"
-    PeerReviewReworkBucketTime = "Peer Review Rework Bucket Time"
-    ReadyForDemoBucketTime = "Ready for Demo Bucket Time"
-    DemoBucketTime = "Demo Bucket Time"
-    ReadyForClientVerificationBucketTime = "Ready for Client Verification Bucket Time"
-    VerificationCompleteBucketTime = "Verification Complete Bucket Time"
+    ConfigurationComplete = "05.Configuration Complete"
+    # BlockedBucketTime = "Blocked Bucket Time"
+    # PeerReviewReworkBucketTime = "Peer Review Rework Bucket Time"
+    ReadyForDemo = "08.Ready For Demo"
+    DemoInProgress = "09.Demo In Progress"
+    ReadyForClientVerification = "12.Ready For Client Verification"
+    VerificationComplete = "14.Verification Complete"
 
 class CaseInsensitiveDict(dict):
     def __init__(self, *args, **kwargs):
@@ -147,17 +147,17 @@ class AgeingParam:
 ageing_params = [
     # Configuration
     # Network
-    AgeingParam(key=columns.ConfigurationDays.value, start_dates=desc_keys.ConfigStartDate.value, end_dates=desc_keys.ConfigEndDate.value, category=Category.Network.value),
+    AgeingParam(key=columns.ConfigurationInProgress.value, start_dates=desc_keys.ConfigStartDate.value, end_dates=desc_keys.ConfigEndDate.value, category=Category.Network.value),
     # Network
-    AgeingParam(key=columns.BlockedConfigurationDays.value, start_dates=desc_keys.AllConfigBlockedStartDate.value, end_dates=desc_keys.AllConfigBlockedEndDate.value, category=Category.Network.value),
+    AgeingParam(key=columns.Blocked.value, start_dates=desc_keys.AllConfigBlockedStartDate.value, end_dates=desc_keys.AllConfigBlockedEndDate.value, category=Category.Network.value),
 
     # Peer Review
     # Length
     AgeingParam(key=columns.NumberOfPeerReviews.value, start_dates=desc_keys.AllPeerReviewStartDate.value, category=Category.Length.value),
     # Network
-    AgeingParam(key=columns.PeerReviewDays.value, start_dates=desc_keys.AllPeerReviewStartDate.value, end_dates=desc_keys.AllPeerReviewEndDate.value, category=Category.Network.value),
+    AgeingParam(key=columns.PeerReviewInProgress.value, start_dates=desc_keys.AllPeerReviewStartDate.value, end_dates=desc_keys.AllPeerReviewEndDate.value, category=Category.Network.value),
     # Network
-    AgeingParam(key=columns.PeerReviewReworkDays.value, start_dates=desc_keys.AllPeerReviewReworkRequiredStartDate.value, end_dates=desc_keys.AllPeerReviewReworkRequiredEndDate.value, category=Category.Network.value),
+    AgeingParam(key=columns.PeerReviewReworkReq.value, start_dates=desc_keys.AllPeerReviewReworkRequiredStartDate.value, end_dates=desc_keys.AllPeerReviewReworkRequiredEndDate.value, category=Category.Network.value),
     # Network
     AgeingParam(key=columns.BlockedPeerReviewReworkDays.value, start_dates=desc_keys.AllPRReworkBlockedStartDate.value, end_dates=desc_keys.AllPRReworkBlockedEndDate.value, category=Category.Network.value),
 
@@ -177,9 +177,9 @@ ageing_params = [
     # Length
     AgeingParam(key=columns.NumberOfClientVerification.value, start_dates=desc_keys.AllClientVerificationStartDate.value, category=Category.Length.value),
     # Network
-    AgeingParam(key=columns.ClientVerificationDays.value, start_dates=desc_keys.AllClientVerificationStartDate.value, end_dates=desc_keys.AllClientVerificationEndDate.value, category=Category.Network.value),
+    AgeingParam(key=columns.VerificationInProgress.value, start_dates=desc_keys.AllClientVerificationStartDate.value, end_dates=desc_keys.AllClientVerificationEndDate.value, category=Category.Network.value),
     # Network
-    AgeingParam(key=columns.ReworkClientVerificationDays.value, start_dates=desc_keys.AllClientReworkRequiredStartDate.value, end_dates=desc_keys.AllClientReworkRequiredEndDate.value, category=Category.Network.value),
+    AgeingParam(key=columns.ClientReworkInProgress.value, start_dates=desc_keys.AllClientReworkRequiredStartDate.value, end_dates=desc_keys.AllClientReworkRequiredEndDate.value, category=Category.Network.value),
     # Network
     AgeingParam(key=columns.BlockedReworkClientVerificationDays.value, start_dates=desc_keys.AllClientBlockedStartDate.value, end_dates=desc_keys.AllClientBlockedEndDate.value, category=Category.Network.value),
 
@@ -191,19 +191,19 @@ ageing_params = [
 
     # Bucket Time
     # Network
-    AgeingParam(key=columns.ConfigurationCompleteBucketTime.value, start_dates=desc_keys.AllPeerReviewStartDate.value, end_dates=desc_keys.ConfigEndDate.value, date_pos=0, category=Category.Network.value),
+    AgeingParam(key=columns.ConfigurationComplete.value, start_dates=desc_keys.AllPeerReviewStartDate.value, end_dates=desc_keys.ConfigEndDate.value, date_pos=0, category=Category.Network.value),
     # Network
-    AgeingParam(key=columns.BlockedBucketTime.value, start_dates=desc_keys.AllConfigBlockedStartDate.value, end_dates=desc_keys.AllConfigBlockedEndDate.value, date_pos=-1, category=Category.Network.value),
+    # AgeingParam(key=columns.BlockedBucketTime.value, start_dates=desc_keys.AllConfigBlockedStartDate.value, end_dates=desc_keys.AllConfigBlockedEndDate.value, date_pos=-1, category=Category.Network.value),
     # Network
-    AgeingParam(key=columns.PeerReviewReworkBucketTime.value, start_dates=desc_keys.AllPeerReviewReworkRequiredStartDate.value, end_dates=desc_keys.AllPeerReviewEndDate.value, date_pos=0, category=Category.Network.value),
+    # AgeingParam(key=columns.PeerReviewReworkBucketTime.value, start_dates=desc_keys.AllPeerReviewReworkRequiredStartDate.value, end_dates=desc_keys.AllPeerReviewEndDate.value, date_pos=0, category=Category.Network.value),
     # Network
-    AgeingParam(key=columns.ReadyForDemoBucketTime.value, start_dates=desc_keys.AllDemoDate.value, end_dates=desc_keys.AllReadyForDemoDate.value, date_pos=0, category=Category.Network.value),
+    AgeingParam(key=columns.ReadyForDemo.value, start_dates=desc_keys.AllDemoDate.value, end_dates=desc_keys.AllReadyForDemoDate.value, date_pos=0, category=Category.Network.value),
     # Network
-    AgeingParam(key=columns.DemoBucketTime.value, start_dates=desc_keys.AllReadyForClientVerificationDate.value, end_dates=desc_keys.AllDemoDate.value, date_pos=0, category=Category.Network.value),
+    AgeingParam(key=columns.DemoInProgress.value, start_dates=desc_keys.AllReadyForClientVerificationDate.value, end_dates=desc_keys.AllDemoDate.value, date_pos=0, category=Category.Network.value),
     # Network
-    AgeingParam(key=columns.ReadyForClientVerificationBucketTime.value, start_dates=desc_keys.AllClientVerificationStartDate.value, end_dates=desc_keys.AllReadyForClientVerificationDate.value, date_pos=0, category=Category.Network.value),
+    AgeingParam(key=columns.ReadyForClientVerification.value, start_dates=desc_keys.AllClientVerificationStartDate.value, end_dates=desc_keys.AllReadyForClientVerificationDate.value, date_pos=0, category=Category.Network.value),
     # Network
-    AgeingParam(key=columns.VerificationCompleteBucketTime.value, start_dates=desc_keys.ReadyToMigrateDate.value, end_dates=desc_keys.VerificationCompleteDate.value, date_pos=0, category=Category.Network.value)
+    AgeingParam(key=columns.VerificationComplete.value, start_dates=desc_keys.ReadyToMigrateDate.value, end_dates=desc_keys.VerificationCompleteDate.value, date_pos=0, category=Category.Network.value)
 ]
 
 def is_leap_year(year: int) -> bool:
