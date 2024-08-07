@@ -198,14 +198,25 @@ class ExcelUploaderApp:
             messagebox.showerror("Error", "result.log file not found.")
 
     def open_new_file(self):
-        new_file_path = os.path.abspath(f'{lattest_report_path}/{new_file_name}.xlsx').replace('\\', '/')
-        if os.path.exists(new_file_path):
+        # Define the directory and prefix for the new file
+        directory = os.path.abspath(lattest_report_path).replace('\\', '/')
+        prefix = new_file_name
+        
+        # Search for the file that starts with the given prefix
+        found_file = None
+        for file_name in os.listdir(directory):
+            if file_name.startswith(prefix) and file_name.endswith('.xlsx'):
+                found_file = os.path.join(directory, file_name)
+                break
+        
+        if found_file and os.path.exists(found_file):
+            # Open the file based on the operating system
             if os.name == 'nt':  # For Windows
-                os.startfile(new_file_path)
+                os.startfile(found_file)
             else:  # For Unix-based systems
-                subprocess.call(['open', new_file_path])
+                subprocess.call(['open', found_file])
         else:
-            messagebox.showerror("Error", f"File {new_file_name} not found.")
+            messagebox.showerror("Error", f"File starting with {prefix} not found.")
 
 if __name__ == "__main__":
     root = tk.Tk()
