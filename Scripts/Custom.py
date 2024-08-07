@@ -434,6 +434,119 @@ def clean_not_candidates(df, task_ids):
 
     return df
 
+def create_excel_with_content(source_file_path: str, destination_path: str, content: pd.DataFrame, new_file_name: str, lattest_report_dir: str, tasks_to_be_painted) -> str:
+   # Generate the timestamp without invalid characters
+    timestamp = datetime.now().strftime("%B %d, %Y %H-%M-%S")
+    lattest_report_name = f"{new_file_name}_{timestamp}.xlsx"
+    lattest_report_path = os.path.join(lattest_report_dir, lattest_report_name)
+
+    new_file_path = os.path.join(destination_path, lattest_report_name)
+
+    # Copy the source file to the new destination
+    shutil.copy2(source_file_path, new_file_path)  # Using copy2 to preserve metadata
+
+    # Open the workbook with xlwings (invisible)
+    app = xw.App(visible=False)
+    try:
+        # Open the source file to determine the last column of the table
+        source_app = xw.App(visible=False)
+        source_wb = source_app.books.open(source_file_path)
+        source_sheet = source_wb.sheets['Tasks']
+        last_col_letter = get_last_column_letter(source_sheet, 'Tasks')
+        source_wb.close()
+        source_app.quit()
+
+        # Now open the new workbook
+        wb = app.books.open(new_file_path)
+        sheet = None
+
+        # Check if 'Tasks' sheet exists
+        for s in wb.sheets:
+            if s.name == 'Tasks':
+                sheet = s
+                break
+        
+        if sheet is None:
+            raise ValueError("The source file does not contain a sheet named 'Tasks'.")
+
+        # Get the existing table in the sheet
+        table_name = 'Tasks'
+        tables = [tbl for tbl in sheet.tables if tbl.name == table_name]
+        if not tables:
+            raise ValueError(f"The sheet 'Tasks' does not contain a table named '{table_name}'.")
+
+        table = tables[0]
+        
+        # Find the first empty row in the table
+        last_row = sheet.range(f"A{sheet.cells.last_cell.row}").end('up').row
+        first_empty_row = last_row + 1
+        
+        # Replace NaN values with None
+        content_cleaned = content.where(pd.notna(content), "")
+        
+        # Write the cleaned content to the sheet starting from the first empty row
+        sheet.range(f"A{first_empty_row}").value = content_cleaned.values
+        
+        # Define the new table range
+        table_range = sheet.range(f"A1:{last_col_letter}{first_empty_row + content_cleaned.shape[0] - 1}")
+        
+        # Resize the table to include the new data
+        table.source_range = table_range
+
+        # Get the range of the table
+        table_range = table.data_body_range
+
+        # Extract the values from the table range
+        table_values = table_range.value
+
+        # Replace cells with the string 'nan' with an empty string
+        for row_idx, row in enumerate(table_values):
+            for col_idx, value in enumerate(row):
+                if isinstance(value, str) and value.lower() == 'nan':
+                    table_range[row_idx, col_idx].value = ''
+
+        # Find the indexes of the rows to be painted
+        task_id_col_index = content.columns.get_loc('Task ID')
+        task_ids = content['Task ID'].values
+        row_indexes_to_paint = [i + first_empty_row for i, task_id in enumerate(task_ids) if task_id in tasks_to_be_painted]
+
+        # Paint the rows yellow if the Task ID is in tasks_to_be_painted
+        yellow_color = (255, 255, 0)  # RGB value for yellow
+        for row_index in row_indexes_to_paint:
+            sheet.range(f"A{row_index}:{last_col_letter}{row_index}").color = yellow_color
+
+        # Adjust first_empty_row for possible deletion
+        first_empty_row -= 1
+        # Delete the first empty row
+        if first_empty_row <= sheet.cells.last_cell.row:
+            sheet.range(f"{first_empty_row}:{first_empty_row}").api.Delete()
+        
+        # Refresh pivot tables
+        pivot_sheet = None
+        for s in wb.sheets:
+            if s.name == 'Pivot Tables':
+                pivot_sheet = s
+                break
+
+        if pivot_sheet:
+            refresh_pivot_tables(pivot_sheet)
+        else:
+            refresh_pivot_tables()
+        
+        # Save and close the workbook
+        wb.save()
+    except Exception as e:
+        print(f"An error occurred: {e}")
+    finally:
+        wb.close()
+        app.quit()
+
+    # Copy the file to the latest report directory
+    delete_all_files_in_folder(lattest_report_dir)
+    shutil.copy2(new_file_path, lattest_report_path)  # Using copy2 to preserve metadata
+
+    return lattest_report_path
+
 def excecute(file_paths = None):
     if file_paths is not None:
         store_excel_as_csv(file_paths)
