@@ -6,3 +6,6 @@ __pycache__/
 
 # Ignore .xlsx files
 *.csv
+
+# Ignore .xlsx files
+*.lnk
