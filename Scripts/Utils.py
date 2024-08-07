@@ -139,17 +139,6 @@ def get_last_column_letter(sheet, table_name):
     last_col_index = table.range.columns.count
     return column_index_to_letter(last_col_index)  # Convert column index to letter
 
-def refresh_pivot_tables(sheet=None):
-    if sheet:
-        # Refresh pivot tables in the specific sheet
-        for pt in sheet.api.PivotTables():
-            pt.PivotCache().Refresh()
-    else:
-        # Refresh all pivot tables in the workbook
-        for s in xw.books.active.sheets:
-            for pt in s.api.PivotTables():
-                pt.PivotCache().Refresh()
-
 def open_file(file_path: str, app:str):
     if app == "excel":
         app = xw.App(visible=True)

@@ -521,17 +521,7 @@ def create_excel_with_content(source_file_path: str, destination_path: str, cont
         if first_empty_row <= sheet.cells.last_cell.row:
             sheet.range(f"{first_empty_row}:{first_empty_row}").api.Delete()
         
-        # Refresh pivot tables
-        pivot_sheet = None
-        for s in wb.sheets:
-            if s.name == 'Pivot Tables':
-                pivot_sheet = s
-                break
-
-        if pivot_sheet:
-            refresh_pivot_tables(pivot_sheet)
-        else:
-            refresh_pivot_tables()
+        refresh_pivot_tables()
         
         # Save and close the workbook
         wb.save()
@@ -546,6 +536,21 @@ def create_excel_with_content(source_file_path: str, destination_path: str, cont
     shutil.copy2(new_file_path, lattest_report_path)  # Using copy2 to preserve metadata
 
     return lattest_report_path
+
+def refresh_pivot_tables():
+    # Get the active workbook
+    wb = xw.books.active
+    
+    # Disable alerts temporarily
+    xw.apps.active.api.DisplayAlerts = False
+    
+    # Refresh all pivot tables in the workbook
+    for sheet in wb.sheets:
+        for pt in sheet.api.PivotTables():
+            pt.PivotCache().Refresh()
+    
+    # Re-enable alerts
+    xw.apps.active.api.DisplayAlerts = True
 
 def excecute(file_paths = None):
     if file_paths is not None:
