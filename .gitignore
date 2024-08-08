@@ -9,3 +9,6 @@ __pycache__/
 
 # Ignore .xlsx files
 *.lnk
+
+# Ignore .xlsx files
+*.log

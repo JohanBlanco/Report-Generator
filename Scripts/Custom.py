@@ -565,21 +565,34 @@ def refresh_pivot_tables():
 
 def excecute(file_paths = None):
     if file_paths is not None:
+        print("Storing the excel files as csv files...")
         store_excel_as_csv(file_paths)
     logger = Logger()
+    print("Reading the csv files...")
     data_frames, sites_dict = read_files(files_directory_path)
+    print("Reading the template file...")
     template = read_excel_file(template_path)
+    print("Putting the csv files information all together as the information for the new file...")
     combined_dataframes = combine_dataframes(data_frames)
     template = move_files_info_to_template(combined_dataframes,template)
+    print("Assigning the sites...")
     template = assign_sites(template,sites_dict)
+    print("Parsing the descriptions and validating the information format...")
     descriptions = parse_descriptions(template, logger)
     tasks_to_be_ignored = logger.get_tasks_ids()
     clean_not_candidates(template, tasks_to_be_ignored)
     ageing_candidates = {key: value for key, value in descriptions.items() if key not in tasks_to_be_ignored}
+    print("Calculating ageing values...")
     insert_ageing_values(ageing_candidates, template)
+    print("Inserting label values...")
     insert_label_values(template)
+    print("Generaring the new excel file...")
     create_excel_with_content(template_path, reports_path, template, new_file_name, lattest_report_path, tasks_to_be_ignored)
+    print("Excel file report created!!")
     logger.save_to_file()
+    print("Creating result.log file...")
+    print("The file result.log was created!!")
+    print("The report was successfully generated!!")
 
 if __name__ == '__main__':
     excecute()

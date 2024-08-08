@@ -176,7 +176,7 @@ def delete_all_files_in_folder(folder_path):
 
 def store_excel_as_csv(file_paths):
     #empty the folder first
-    delete_all_files_in_folder(files_directory_path)
+    # delete_all_files_in_folder(files_directory_path)
     # Ensure the destination folder exists, create if it doesn't
     if not os.path.exists(files_directory_path):
         os.makedirs(files_directory_path)
