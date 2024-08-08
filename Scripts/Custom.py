@@ -503,6 +503,15 @@ def create_excel_with_content(source_file_path: str, destination_path: str, cont
         # Resize the table to include the new data
         table.source_range = table_range
 
+        # Extract the values from the table range
+        table_values = table_range.value
+
+        # Replace cells with the string 'nan' with an empty string
+        for row_idx, row in enumerate(table_values):
+            for col_idx, value in enumerate(row):
+                if isinstance(value, str) and value.lower() == 'nan':
+                    table_range[row_idx, col_idx].value = ''
+
         # Find the indexes of the rows to be painted
         task_id_col_index = content.columns.get_loc('Task ID')
         task_ids = content['Task ID'].values

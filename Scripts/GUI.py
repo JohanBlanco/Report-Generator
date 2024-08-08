@@ -143,6 +143,9 @@ class ExcelUploaderApp:
                 self.root.after(0, self.show_end_screen)
             except Exception as e:
                 print(f"Error storing the files as csv: {e}")
+                messagebox.showerror("Error", f"An error occurred: {e}")
+                # Reset UI to go back to the initial screen
+                self.root.after(0, self.reset_ui)
             finally:
                 # Hide the loading message and wheel
                 self.root.after(0, self.reset_ui(show_upload=False))
