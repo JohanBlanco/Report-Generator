@@ -495,7 +495,13 @@ def create_excel_with_content(source_file_path: str, destination_path: str, cont
         content_cleaned = content.where(pd.notna(content), "")
         
         # Write the cleaned content to the sheet starting from the first empty row
-        sheet.range(f"A{first_empty_row}").value = content_cleaned.values
+        app.calculation = 'manual'
+        data_to_write = content_cleaned.values.tolist()
+        batch_size = 100  # You can experiment with this size
+        for start_row in range(0, len(data_to_write), batch_size):
+            end_row = start_row + batch_size
+            sheet.range(f"A{first_empty_row + start_row}").value = data_to_write[start_row:end_row]
+        app.calculation = 'automatic'
         
         # Define the new table range
         table_range = sheet.range(f"A1:{last_col_letter}{first_empty_row + content_cleaned.shape[0] - 1}")
@@ -553,7 +559,7 @@ def refresh_pivot_tables():
     wb = xw.books.active
     
     # Disable alerts temporarily
-    xw.apps.active.api.DisplayAlerts = False
+    # xw.apps.active.api.DisplayAlerts = False
     
     # Refresh all pivot tables in the workbook
     for sheet in wb.sheets:
@@ -561,7 +567,7 @@ def refresh_pivot_tables():
             pt.PivotCache().Refresh()
     
     # Re-enable alerts
-    xw.apps.active.api.DisplayAlerts = True
+    # xw.apps.active.api.DisplayAlerts = True
 
 def excecute(file_paths = None):
     if file_paths is not None:
