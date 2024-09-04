@@ -8,7 +8,7 @@ __pycache__/
 *.csv
 
 # Ignore .xlsx files
-*.lnk
+Report Generator.lnk
 
 # Ignore .xlsx files
 *.log
