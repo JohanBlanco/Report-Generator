@@ -79,47 +79,14 @@ def clean_description(text: str) -> str:
     text = text.lower().replace('\r', " ").replace('\t', " ").replace('_x000d_', " ")
     return text
 
-def read_files(files_directory_path: str):
-    sites_dict = {}
-    data_frames = []
-
-    if not os.path.exists(files_directory_path):
-        print(f"The directory '{files_directory_path}' does not exist.")
-        return data_frames, sites_dict
-
-    for filename in os.listdir(files_directory_path):
-        file_path = os.path.join(files_directory_path, filename)
-
-        if os.path.isfile(file_path) and filename.endswith('.csv'):
-            try:
-                # Read the CSV file into a DataFrame with UTF-8 encoding
-                df = pd.read_csv(file_path, encoding='utf-8')
-
-                # Ensure column names are cleaned and set properly
-                if not df.empty:
-                    df.columns = df.columns.str.strip()  # Clean column names
-
-                    # Clean the 'Description' column if it exists
-                    if 'Description' in df.columns:
-                        df['Description'] = df['Description'].apply(clean_description)
-
-                    data_frames.append(df)
-
-                    # Extract Task IDs if available
-                    if 'Task ID' in df.columns:
-                        sites_dict[filename] = list(df['Task ID'].dropna().astype(str))
-
-            except Exception as e:
-                print(f"Failed to read {filename}: {e}")
-
-    return data_frames, sites_dict
-
 def combine_dataframes(data_frames):
     if data_frames:
         combined_df = pd.concat(data_frames, ignore_index=True)
         return combined_df
     else:
         return pd.DataFrame()
+
+
 
 def column_index_to_letter(index):
     """Convert a 1-based column index to an Excel column letter."""
@@ -198,3 +165,4 @@ def store_excel_as_csv(file_paths):
                 print(f"Failed to convert {file_path}: {e}")
         else:
             print(f"Skipping {file_path}: Not an Excel file or does not exist")
+

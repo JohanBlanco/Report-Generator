@@ -7,6 +7,10 @@ from workalendar.usa import UnitedStates
 from Logger import Logger
 from variables import *
 from Utils import *
+from openpyxl import load_workbook
+from openpyxl.worksheet.table import Table, TableStyleInfo
+from openpyxl.utils import get_column_letter
+from datetime import datetime
 
 class desc_keys(Enum):
     ConfigStartDate = "config start date"
@@ -434,11 +438,11 @@ def clean_not_candidates(df, task_ids):
 
     return df
 
-def create_excel_with_content(source_file_path: str, destination_path: str, content: pd.DataFrame, new_file_name: str, lattest_report_dir: str, tasks_to_be_painted) -> str:
+def create_dashboard_report(source_file_path: str, destination_path: str, content: pd.DataFrame, new_file_name: str, lattest_report_dir: str, tasks_to_be_painted) -> str:
     # Generate the timestamp without invalid characters
     timestamp = datetime.now().strftime("%B %d, %Y %H-%M-%S")
-    lattest_report_name = f"{new_file_name}_{timestamp}.xlsx"
-    lattest_report_path = os.path.join(lattest_report_dir, lattest_report_name)
+    lattest_report_name = f"{new_file_name} {timestamp}.xlsx"
+    lattest_report_path = os.path.join(lattest_report_dir+'/Dashboard/', lattest_report_name)
     
     new_file_path = os.path.join(destination_path, lattest_report_name)
     
@@ -543,7 +547,7 @@ def create_excel_with_content(source_file_path: str, destination_path: str, cont
         app.quit()
     
     # Copy the file to the latest report directory
-    delete_all_files_in_folder(lattest_report_dir)
+    delete_all_files_in_folder(lattest_report_dir+'/Dashboard')
     shutil.copy2(new_file_path, lattest_report_path)  # Using copy2 to preserve metadata
     
     return lattest_report_path
@@ -563,36 +567,152 @@ def refresh_pivot_tables():
     # Re-enable alerts
     # xw.apps.active.api.DisplayAlerts = True
 
-def excecute(file_paths = None):
-    if file_paths is not None:
-        print("Storing the excel files as csv files...")
-        store_excel_as_csv(file_paths)
-    logger = Logger()
-    print("Reading the csv files...")
-    data_frames, sites_dict = read_files(files_directory_path)
-    print("Reading the template file...")
+def read_files(files_directory_path: str):
+    sites_dict = {}
+    boards_data_frames = []
+    financial_data_frame = pd.DataFrame()
+
+    if not os.path.exists(files_directory_path):
+        print(f"The directory '{files_directory_path}' does not exist.")
+        return boards_data_frames,  sites_dict, financial_data_frame
+
+    for filename in os.listdir(files_directory_path):
+        file_path = os.path.join(files_directory_path, filename)
+
+        if os.path.isfile(file_path) and filename.endswith('.csv'):
+            try:
+                # Read the CSV file into a DataFrame with UTF-8 encoding
+                df = pd.read_csv(file_path, encoding='utf-8')
+
+                # Ensure column names are cleaned and set properly
+                if not df.empty:
+                    if set(required_headers).issubset(df.columns):
+                        if set(dashboard_required_headers).issubset(df.columns):
+                            # Extract Task IDs if available
+                            sites_dict[filename] = list(df['Task ID'].dropna().astype(str))
+                            df.columns = df.columns.str.strip()  # Clean column names
+
+                            # Clean the 'Description' column if it exists
+                            if 'Description' in df.columns:
+                                df['Description'] = df['Description'].apply(clean_description)
+
+                            boards_data_frames.append(df)    
+                        if set(financial_required_headers).issubset(df.columns):
+                            financial_data_frame = df
+                            financial_data_frame.fillna("")
+
+            except Exception as e:
+                print(f"Failed to read {filename}: {e}")
+
+    
+
+    return boards_data_frames, sites_dict, financial_data_frame
+
+def store_files(file_paths):
+    store_excel_as_csv(file_paths)
+
+def create_financial_report(tasks_dataframe, financial_data_frame):
+    # Ensure you're working with a copy of the DataFrame slice
+    tasks_dataframe = tasks_dataframe[['Task ID', 'Task Name', 'Bucket Name', 'Site']].copy()
+    
+    size = tasks_dataframe['Task ID'].size
+    
+    # Use .loc to avoid the SettingWithCopyWarning
+    for column in financial_required_headers:
+        tasks_dataframe.loc[:, column] = [''] * size
+    
+    # Update the financial data into tasks_dataframe
+    for index, row in financial_data_frame.iterrows():
+        task_id = row['Task ID']
+        for column in financial_required_headers:
+            value = row[column]
+            tasks_dataframe.loc[tasks_dataframe['Task ID'] == task_id, column] = value
+
+    # Handle file deletion and Excel export
+    delete_all_files_in_folder(lattest_report_path + '/Financial')
+    timestamp = datetime.now().strftime("%B %d, %Y %H-%M-%S")
+    lattest_report_name = f"{lattest_report_path}/Financial/{financial_new_file_name} {timestamp}.xlsx"
+    
+    # Save the DataFrame to Excel, excluding the index column
+    tasks_dataframe.to_excel(lattest_report_name, engine='openpyxl', index=False)
+
+    # Load the workbook and select the active worksheet
+    wb = load_workbook(lattest_report_name)
+    ws = wb.active
+
+    # Define the range of the table
+    table_range = f"A1:{chr(64 + len(tasks_dataframe.columns))}{len(tasks_dataframe) + 1}"
+
+    # Create a table
+    table = Table(displayName="FinancialTable", ref=table_range)
+
+    # Add a Table Style
+    style = TableStyleInfo(
+        name="TableStyleMedium9", showFirstColumn=False,
+        showLastColumn=False, showRowStripes=True, showColumnStripes=True
+    )
+    table.tableStyleInfo = style
+
+    # Add the table to the worksheet
+    ws.add_table(table)
+
+    # Auto-adjust column widths
+    for column in ws.columns:
+        max_length = 0
+        column_letter = get_column_letter(column[0].column)
+
+        for cell in column:
+            try:
+                if len(str(cell.value)) > max_length:
+                    max_length = len(cell.value)
+            except:
+                pass
+        
+        adjusted_width = (max_length + 2)  # Add some padding
+        ws.column_dimensions[column_letter].width = adjusted_width
+
+    # Save the updated workbook
+    wb.save(lattest_report_name)
+
+
+
+
+def get_tasks_data(data_frames, sites_dict, do_financial, do_dashboard):
     template = read_excel_file(template_path)
-    print("Putting the csv files information all together as the information for the new file...")
     combined_dataframes = combine_dataframes(data_frames)
     template = move_files_info_to_template(combined_dataframes,template)
-    print("Assigning the sites...")
     template = assign_sites(template,sites_dict)
-    print("Parsing the descriptions and validating the information format...")
+    if do_financial and not do_dashboard:
+        return template, []
+    logger = Logger()
     descriptions = parse_descriptions(template, logger)
     tasks_to_be_ignored = logger.get_tasks_ids()
     clean_not_candidates(template, tasks_to_be_ignored)
     ageing_candidates = {key: value for key, value in descriptions.items() if key not in tasks_to_be_ignored}
-    print("Calculating ageing values...")
     insert_ageing_values(ageing_candidates, template)
-    print("Inserting label values...")
     insert_label_values(template)
-    print("Generaring the new excel file...")
-    create_excel_with_content(template_path, reports_path, template, new_file_name, lattest_report_path, tasks_to_be_ignored)
-    print("Excel file report created!!")
     logger.save_to_file()
-    print("Creating result.log file...")
-    print("The file result.log was created!!")
-    print("The report was successfully generated!!")
+    return template, tasks_to_be_ignored
+
+def excecute(file_paths = None, checkboxes = None):
+    do_financial,do_dashboard = checkboxes
+    if file_paths is not None:
+        store_files(file_paths)
+    if checkboxes is None:
+        checkboxes = (False, False)
+
+    print("Getting the information from the files...")
+    boards_data_frames, sites_dict, financial_data_frame = read_files(files_directory_path)
+    tasks_dataframe, tasks_to_be_ignored = get_tasks_data(boards_data_frames, sites_dict, do_financial, do_dashboard)
+    if do_dashboard:
+        print("Creating dashboard report...")
+        create_dashboard_report(template_path, reports_path, tasks_dataframe, new_file_name, lattest_report_path, tasks_to_be_ignored)
+    if do_financial:
+        print("Creating financial report...")
+        create_financial_report(tasks_dataframe, financial_data_frame)
+
+    print("Reports generated successfully!")
+    
 
 if __name__ == '__main__':
     excecute()
