@@ -715,7 +715,9 @@ def excecute(file_paths = None, checkboxes = None):
             print("Creating financial report...")
             create_financial_report(tasks_dataframe, financial_data_frame)
 
-    print("Reports generated successfully!")
+        print("Reports generated successfully!")
+    else:
+        print("Analysis generated successfully!")
     
 
 if __name__ == '__main__':
