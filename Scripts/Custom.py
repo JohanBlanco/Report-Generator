@@ -677,7 +677,7 @@ def create_financial_report(tasks_dataframe, financial_data_frame):
 
 
 
-def get_tasks_data(data_frames, sites_dict, do_financial, do_dashboard):
+def get_tasks_data(data_frames, sites_dict, do_financial, do_dashboard, analyze_descriptions_only):
     template = read_excel_file(template_path)
     combined_dataframes = combine_dataframes(data_frames)
     template = move_files_info_to_template(combined_dataframes,template)
@@ -686,6 +686,9 @@ def get_tasks_data(data_frames, sites_dict, do_financial, do_dashboard):
         return template, []
     logger = Logger()
     descriptions = parse_descriptions(template, logger)
+    if(analyze_descriptions_only):
+        logger.save_to_file()
+        return [],[]
     tasks_to_be_ignored = logger.get_tasks_ids()
     clean_not_candidates(template, tasks_to_be_ignored)
     ageing_candidates = {key: value for key, value in descriptions.items() if key not in tasks_to_be_ignored}
@@ -695,23 +698,26 @@ def get_tasks_data(data_frames, sites_dict, do_financial, do_dashboard):
     return template, tasks_to_be_ignored
 
 def excecute(file_paths = None, checkboxes = None):
-    do_financial,do_dashboard = checkboxes
+    do_financial,do_dashboard, analyze_descriptions_only = checkboxes
     if file_paths is not None:
         store_files(file_paths)
     if checkboxes is None:
-        checkboxes = (False, False)
+        checkboxes = (False, False, False)
 
     print("Getting the information from the files...")
     boards_data_frames, sites_dict, financial_data_frame = read_files(files_directory_path)
-    tasks_dataframe, tasks_to_be_ignored = get_tasks_data(boards_data_frames, sites_dict, do_financial, do_dashboard)
-    if do_dashboard:
-        print("Creating dashboard report...")
-        create_dashboard_report(template_path, reports_path, tasks_dataframe, new_file_name, lattest_report_path, tasks_to_be_ignored)
-    if do_financial:
-        print("Creating financial report...")
-        create_financial_report(tasks_dataframe, financial_data_frame)
+    tasks_dataframe, tasks_to_be_ignored = get_tasks_data(boards_data_frames, sites_dict, do_financial, do_dashboard, analyze_descriptions_only)
+    if not analyze_descriptions_only:
+        if do_dashboard:
+            print("Creating dashboard report...")
+            create_dashboard_report(template_path, reports_path, tasks_dataframe, new_file_name, lattest_report_path, tasks_to_be_ignored)
+        if do_financial:
+            print("Creating financial report...")
+            create_financial_report(tasks_dataframe, financial_data_frame)
 
-    print("Reports generated successfully!")
+        print("Reports generated successfully!")
+    else:
+        print("Analysis generated successfully!")
     
 
 if __name__ == '__main__':

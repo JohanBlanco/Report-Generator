@@ -43,7 +43,6 @@ class ExcelUploaderApp:
         y_position = int((screen_height - window_height) / 2)
 
         self.root.geometry(f"{window_width}x{window_height}+{x_position}+{y_position}")
-
         self.root.configure(bg='white')
 
         self.style = ttk.Style()
@@ -66,12 +65,15 @@ class ExcelUploaderApp:
 
         self.do_financial_var = tk.BooleanVar()
         self.do_dashboard_var = tk.BooleanVar()
+        self.analyze_descriptions_only_var = tk.BooleanVar()
 
-        self.financial_checkbox = ttk.Checkbutton(self.checkbox_frame, text="Financial", variable=self.do_financial_var, style='TCheckbutton')
-        self.dashboard_checkbox = ttk.Checkbutton(self.checkbox_frame, text="Dashboard", variable=self.do_dashboard_var, style='TCheckbutton')
+        self.financial_checkbox = ttk.Checkbutton(self.checkbox_frame, text="Financial", variable=self.do_financial_var, style='TCheckbutton', command=self.toggle_checkboxes)
+        self.dashboard_checkbox = ttk.Checkbutton(self.checkbox_frame, text="Dashboard", variable=self.do_dashboard_var, style='TCheckbutton', command=self.toggle_checkboxes)
+        self.analyze_checkbox = ttk.Checkbutton(self.checkbox_frame, text="Analyze Descriptions Only", variable=self.analyze_descriptions_only_var, style='TCheckbutton', command=self.toggle_checkboxes)
 
         self.financial_checkbox.pack(side=tk.LEFT, padx=10)
         self.dashboard_checkbox.pack(side=tk.LEFT, padx=10)
+        self.analyze_checkbox.pack(side=tk.LEFT, padx=10)
 
         self.upload_button = ttk.Button(self.start_content_frame, text="Upload Files", command=self.upload_files, style='TButton')
         self.upload_button.pack(pady=20)
@@ -100,7 +102,7 @@ class ExcelUploaderApp:
 
         self.new_report_button = ttk.Button(self.buttons_frame, text="Generate a new report", command=self.go_to_upload_screen, style='TButton')
         self.quit_button = ttk.Button(self.buttons_frame, text="Quit", command=self.quit_application, style='TButton')
-        self.open_result_log_button = ttk.Button(self.buttons_frame, text="Open result.log", command=self.open_result_log, style='TButton')
+        self.open_result_log_button = ttk.Button(self.buttons_frame, text="Open Analysis", command=self.open_result_log, style='TButton')
         self.open_new_file_button = ttk.Button(self.buttons_frame, text="Open Dashboard", command=self.open_new_file, style='TButton')
         self.open_financial_button = ttk.Button(self.buttons_frame, text="Open Financial", command=self.open_financial_file, style='TButton')
 
@@ -111,6 +113,26 @@ class ExcelUploaderApp:
         self.quit_button.grid(row=0, column=4, padx=5)
 
         self.root.protocol("WM_DELETE_WINDOW", self.quit_application)
+
+    def toggle_checkboxes(self):
+        if self.analyze_descriptions_only_var.get():
+            # If Analyze Descriptions Only is checked, disable and uncheck other checkboxes
+            self.do_financial_var.set(False)
+            self.do_dashboard_var.set(False)
+            self.financial_checkbox.state(['disabled'])
+            self.dashboard_checkbox.state(['disabled'])
+        else:
+            # If Analyze Descriptions Only is unchecked, enable other checkboxes
+            self.financial_checkbox.state(['!disabled'])
+            self.dashboard_checkbox.state(['!disabled'])
+
+        if self.do_financial_var.get() or self.do_dashboard_var.get():
+            # If either Financial or Dashboard is checked, disable and uncheck Analyze Descriptions Only
+            self.analyze_descriptions_only_var.set(False)
+            self.analyze_checkbox.state(['disabled'])
+        else:
+            # Enable Analyze Descriptions Only if neither Financial nor Dashboard is checked
+            self.analyze_checkbox.state(['!disabled'])
 
     def upload_files(self):
         self.start_screen_frame.pack_forget()
@@ -131,9 +153,10 @@ class ExcelUploaderApp:
 
             do_financial = self.do_financial_var.get()
             do_dashboard = self.do_dashboard_var.get()
+            analyzed_descriptions_only = self.analyze_descriptions_only_var.get()
 
             try:
-                Custom.excecute(file_paths, (do_financial, do_dashboard))
+                Custom.excecute(file_paths, (do_financial, do_dashboard, analyzed_descriptions_only))
                 self.root.after(0, self.show_end_screen)
             except Exception as e:
                 print(f"Error storing the files as csv: {e}")
@@ -170,49 +193,43 @@ class ExcelUploaderApp:
             else:  # For Unix-based systems
                 subprocess.call(['open', log_path])
         else:
-            messagebox.showerror("Error", "result.log file not found.")
+            messagebox.showerror("Error", "Log file not found.")
 
     def open_new_file(self):
-         # Define the directory and prefix for the new file
         directory = os.path.abspath(lattest_report_path + "/Dashboard").replace('\\', '/')
         prefix = new_file_name
-        
-        # Search for the file that starts with the given prefix
+
         found_file = None
         for file_name in os.listdir(directory):
             if file_name.startswith(prefix) and file_name.endswith('.xlsx'):
                 found_file = os.path.join(directory, file_name)
                 break
-        
+
         if found_file and os.path.exists(found_file):
-            # Open the file based on the operating system
             if os.name == 'nt':  # For Windows
                 os.startfile(found_file)
             else:  # For Unix-based systems
                 subprocess.call(['open', found_file])
         else:
-            messagebox.showerror("Error", f"File starting with {prefix} not found.")
+            messagebox.showerror("Error", "Dashboard report not found.")
 
     def open_financial_file(self):
-        # Define the directory and prefix for the new file
         directory = os.path.abspath(lattest_report_path + "/Financial").replace('\\', '/')
         prefix = financial_new_file_name
         
-        # Search for the file that starts with the given prefix
         found_file = None
         for file_name in os.listdir(directory):
             if file_name.startswith(prefix) and file_name.endswith('.xlsx'):
                 found_file = os.path.join(directory, file_name)
                 break
-        
+
         if found_file and os.path.exists(found_file):
-            # Open the file based on the operating system
             if os.name == 'nt':  # For Windows
                 os.startfile(found_file)
             else:  # For Unix-based systems
                 subprocess.call(['open', found_file])
         else:
-            messagebox.showerror("Error", f"File starting with {prefix} not found.")
+            messagebox.showerror("Error", "Financial report not found.")
 
 if __name__ == "__main__":
     root = tk.Tk()
