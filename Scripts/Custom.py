@@ -613,7 +613,7 @@ def store_files(file_paths):
 
 def create_financial_report(tasks_dataframe, financial_data_frame):
     # Ensure you're working with a copy of the DataFrame slice
-    tasks_dataframe = tasks_dataframe[['Task ID', 'Task Name', 'Bucket Name', 'Site']].copy()
+    tasks_dataframe = tasks_dataframe[['Task ID', 'Task Name', 'Labels', 'Bucket Name', 'Site']].copy()
     
     size = tasks_dataframe['Task ID'].size
     
