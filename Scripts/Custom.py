@@ -611,22 +611,33 @@ def read_files(files_directory_path: str):
 def store_files(file_paths):
     store_excel_as_csv(file_paths)
 
-def create_financial_report(tasks_dataframe, financial_data_frame):
+def create_financial_report(tasks_dataframe, financial_data_frame, labels):
     # Ensure you're working with a copy of the DataFrame slice
     tasks_dataframe = tasks_dataframe[['Task ID', 'Task Name', 'Labels', 'Bucket Name', 'Site']].copy()
     
     size = tasks_dataframe['Task ID'].size
     
-    # Use .loc to avoid the SettingWithCopyWarning
+    # Use .loc to avoid the SettingWithCopyWarning and add empty columns
     for column in financial_required_headers:
         tasks_dataframe.loc[:, column] = [''] * size
+
+    # Add label columns and fill them with empty strings
+    for column in labels:
+        tasks_dataframe.loc[:, column] = [''] * size
     
-    # Update the financial data into tasks_dataframe
+    # Update financial data into tasks_dataframe based on 'Task ID'
     for index, row in financial_data_frame.iterrows():
         task_id = row['Task ID']
         for column in financial_required_headers:
             value = row[column]
             tasks_dataframe.loc[tasks_dataframe['Task ID'] == task_id, column] = value
+
+    # labels information
+    for index, row in tasks_dataframe.iterrows():
+        task_id = row['Task ID']
+        labels = str(row['Labels']).split(';')
+        for column in labels:
+            tasks_dataframe.loc[tasks_dataframe['Task ID'] == task_id, column.upper()] = True
 
     # Handle file deletion and Excel export
     delete_all_files_in_folder(lattest_report_path + '/Financial')
@@ -640,8 +651,10 @@ def create_financial_report(tasks_dataframe, financial_data_frame):
     wb = load_workbook(lattest_report_name)
     ws = wb.active
 
-    # Define the range of the table
-    table_range = f"A1:{chr(64 + len(tasks_dataframe.columns))}{len(tasks_dataframe) + 1}"
+    # Define the range of the table dynamically based on DataFrame size
+    num_cols = tasks_dataframe.shape[1]  # Number of columns in DataFrame
+    num_rows = tasks_dataframe.shape[0] + 1  # Number of rows including header
+    table_range = f"A1:{get_column_letter(num_cols)}{num_rows}"
 
     # Create a table
     table = Table(displayName="FinancialTable", ref=table_range)
@@ -663,19 +676,16 @@ def create_financial_report(tasks_dataframe, financial_data_frame):
 
         for cell in column:
             try:
-                if len(str(cell.value)) > max_length:
-                    max_length = len(cell.value)
+                if cell.value is not None and len(str(cell.value)) > max_length:
+                    max_length = len(str(cell.value))
             except:
                 pass
         
-        adjusted_width = (max_length + 2)  # Add some padding
+        adjusted_width = max_length + 2  # Add some padding
         ws.column_dimensions[column_letter].width = adjusted_width
 
     # Save the updated workbook
     wb.save(lattest_report_name)
-
-
-
 
 def get_tasks_data(data_frames, sites_dict, do_financial, do_dashboard, analyze_descriptions_only):
     template = read_excel_file(template_path)
@@ -697,12 +707,22 @@ def get_tasks_data(data_frames, sites_dict, do_financial, do_dashboard, analyze_
     logger.save_to_file()
     return template, tasks_to_be_ignored
 
+def get_labels_list(tasks_dataframe):
+    list = set()
+    for labels_line in tasks_dataframe['Labels']:
+        if pd.notna(labels_line):  # Check if the value is not NaN
+            labels = str(labels_line).upper().split(';')  # Convert to lowercase and split by semicolon
+            for label in labels:
+                list.add(label)
+    return list
+
 def excecute(file_paths = None, checkboxes = None):
-    do_financial,do_dashboard, analyze_descriptions_only = checkboxes
     if file_paths is not None:
         store_files(file_paths)
     if checkboxes is None:
-        checkboxes = (False, False, False)
+        checkboxes = (True, False, False)
+
+    do_financial,do_dashboard, analyze_descriptions_only = checkboxes
 
     print("Getting the information from the files...")
     boards_data_frames, sites_dict, financial_data_frame = read_files(files_directory_path)
@@ -713,7 +733,8 @@ def excecute(file_paths = None, checkboxes = None):
             create_dashboard_report(template_path, reports_path, tasks_dataframe, new_file_name, lattest_report_path, tasks_to_be_ignored)
         if do_financial:
             print("Creating financial report...")
-            create_financial_report(tasks_dataframe, financial_data_frame)
+            labels = get_labels_list(tasks_dataframe)
+            create_financial_report(tasks_dataframe, financial_data_frame, labels)
 
         print("Reports generated successfully!")
     else:
